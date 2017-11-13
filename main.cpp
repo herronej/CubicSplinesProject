@@ -5,6 +5,38 @@
 #include <string>
 using namespace std;
 
+void sg_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329]){
+
+    for(int m = 0; m < nPasses; m++)
+        for(int i = 0; i < 1329; i++){
+            double sumX = 0.0;
+            double sumA = 0.0;
+            for(int j = i - (nFilterPoints-1)/2; j <= i + (nFilterPoints-1)/2; j++){
+                sumA += a[j];
+            }
+            if (m == 4)
+                cout << x[i] << "\t" << sumA/nFilterPoints << endl;
+        }
+
+}
+
+
+void boxcar_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329]){
+    
+   for(int m = 0; m < nPasses; m++)
+    for(int i = 0; i < 1329; i++){
+        double sumX = 0.0;
+        double sumA = 0.0;
+        for(int j = i - (nFilterPoints-1)/2; j <= i + (nFilterPoints-1)/2; j++){
+            sumA += a[j];
+        }
+        if (m == 4)
+            cout << x[i] << "\t" << sumA/nFilterPoints << endl;
+    }
+    
+
+}
+
 void getCoefficients(int n, double x[1329], double a[1329], double b[1329], double c[1329], double d[1329]){
 
     double h[n+1];
@@ -61,8 +93,7 @@ int main(){
         double xpt, ypt;
         in >> xpt;
         in >> ypt;
-        cout << xpt << endl;
-        cout << ypt << endl;
+        //cout << xpt << "\t" << ypt << endl;
         x[r] = xpt;
         a[r] = ypt;
     }
@@ -108,17 +139,20 @@ int main(){
     getCoefficients(n, x, a, b, c, d);
 
     for(int j = 0; j < n; j++){
-        cout << j << ": " << a[j] << "\t" << b[j] << "\t" << c[j] << "\t" << d[j] << endl;
+        //cout << j << ": " << a[j] << "\t" << b[j] << "\t" << c[j] << "\t" << d[j] << endl;
     }
 
-    double currX = x[0];
+    double currX = x[n];// x[0];
     int partIndex;    
 
-    for(int i = 1; i <= 100; i++){
+
+    // generate points
+    for(int i = 1; i <= 10000; i++){
         
         for(int j = 0; j < n; j++){
-            if(currX >= x[j] && currX <= x[j+1]){
+            if(currX <= x[j] && currX >= x[j+1]){
                 partIndex = j;
+                
                 //cout << "partIndex: " << partIndex << endl;
                 break;
             }       
@@ -129,8 +163,10 @@ int main(){
         //cout << currX << "\t" << total_y << endl;
                 
 
-        currX = currX + (x[n]-x[0])/100.0;
+        currX = currX - (x[n]-x[0])/10000.0;
         
     }
 
+    boxcar_filter(5, x, a);
+    
 }
