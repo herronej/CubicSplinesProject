@@ -7,14 +7,30 @@ using namespace std;
 
 void sg_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329]){
 
-    for(int m = 0; m < nPasses; m++)
-        for(int i = 0; i < 1329; i++){
+    double c5[5] = {-3, 12, 17, 12, -3};
+    double c11[11] = {-36, 9, 44, 69, 84, 89, 84, 69, 44, 9, -36};
+    double c17[17] = {-21, -6, 7, 18, 27, 34, 39, 42, 43, 42, 39, 34, 27, 18, 7, -6, -21};
+
+    for(int p = 1; p <= nPasses; p++)
+        for(int i = (nFilterPoints-1)/2; i < 1329-(nFilterPoints-1)/2; i++){
             double sumX = 0.0;
             double sumA = 0.0;
-            for(int j = i - (nFilterPoints-1)/2; j <= i + (nFilterPoints-1)/2; j++){
-                sumA += a[j];
+            for(int j = 0; j <= nFilterPoints; j++){
+                
+                if(nFilterPoints == 5){
+                    sumA += c5[j]*a[i+1];
+                }
+            
+                else if(nFilterPoints == 11){
+                    sumA += c11[j]*a[i+1];
+                }
+
+                else if(nFilterPoints == 17){
+                    sumA += c17[j]*a[i+1];
+                }
+                //sumA += a[j];
             }
-            if (m == 4)
+            if (p == nPasses)
                 cout << x[i] << "\t" << sumA/nFilterPoints << endl;
         }
 
@@ -167,6 +183,7 @@ int main(){
         
     }
 
-    boxcar_filter(5, x, a);
-    
+    //boxcar_filter(5, x, a);
+ 
+    sg_filter(17, 5, x, a);   
 }
