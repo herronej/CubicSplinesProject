@@ -22,18 +22,18 @@ double f_x(double currX, double x[1329], double a[1329], double b[1329], double 
     return total_y;
 }
 
-double composite_trapezoid(double a, double b, int n){
+/*double composite_trapezoid(double a, double b, int n){
     double h = (b-a)/n;
 
-    double XI0 = f(a) + f(b);
+    double XI0 = f_x(a) + f_x(b);
     double XI1 = 0;
     double XI2 = 0;
 
     for(int i = 1; i < n; i++){
         double X = a + i*h;
         cout << "X: " << X << endl;
-        cout << "f(X): " << f(X) << endl;
-        XI2 = XI2 + f(X);
+        cout << "f(X): " << f_x(X) << endl;
+        XI2 = XI2 + f_x(X);
     }
 
     XI1 = h*(XI0+2.0*XI2)/2.0;
@@ -45,7 +45,7 @@ double composite_trapezoid(double a, double b, int n){
 double composite_simpsons(double a, double b, int n){
     double h = (b-a)/n;
 
-    double XI0 = f(a) + f(b);
+    double XI0 = f_x(a) + f_x(b);
     double XI1 = 0;
     double XI2 = 0;
 
@@ -75,7 +75,7 @@ double romberg(double a, double b, int n){
         double approx = 0;
 
         for(int k = 1; k <= pow(2.0, i-2.0); k++){
-            approx = approx + f(a + (k-0.5)*h);
+            approx = approx + f_x(a + (k-0.5)*h);
         }
 
         R[2][1] = 0.5 * ( R[1][1] + h*approx);
@@ -114,9 +114,9 @@ double adaptiveQuadrature(double a, double b, double TOL, int N){
     TOL_arr[i] = 10.0*TOL;
     a_arr[i] = a;
     h_arr[i] = (b-a)/2.0;
-    FA_arr[i] = f(a);
-    FC_arr[i] = f(a+h_arr[i]);
-    FB_arr[i] = f(b);
+    FA_arr[i] = f_x(a);
+    FC_arr[i] = f_x(a+h_arr[i]);
+    FB_arr[i] = f_x(b);
     S_arr[i] = h_arr[i]*(FA_arr[i] + 4*FC_arr[i] + FB_arr[i])/3.0;
     L_arr[i] = 1.0;
 
@@ -174,7 +174,7 @@ double adaptiveQuadrature(double a, double b, double TOL, int N){
 
     return APP;
 }
-
+*/
 
 double bisection(double a, double b, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
 
@@ -218,7 +218,9 @@ double bisection(double a, double b, double x[1329], double aC[1329], double bC[
      return NULL;
 }
 
-void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks){
+void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double shift){
+
+    bool tms_set = false;
 
     double y_prev = a[0];
 
@@ -234,8 +236,21 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
         if(y_prev > 0 and a[i] < 0){
             cout << "end between " << x[i-1] << " and " << x[i] << endl;
             double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
+
+            if(! tms_set){
+                shift = (pntB+peaks.back().front())/2.0;
+                for(int j = 0; j < 1329; j++){
+                    x[j] -= shift;
+                }
+                pntB -= shift;
+                peaks.back().front() -= shift;
+                tms_set = true;
+            }
+
             peaks.back().push_back(pntB);
             cout << "point B: " << pntB << endl;
+            peaks.back().push_back((pntB+peaks.back().front())/2.0);
+
         }
         y_prev = a[i];
     }
@@ -335,13 +350,15 @@ void getCoefficients(int n, double x[1329], double a[1329], double b[1329], doub
 
 int main(){
 
-    double baseline = 10.0;
+    double baseline = 1400.0;
 
     double tol = 1e-8;
 
     int n = 1328;
 
     int r = 0;
+
+    double shift;
 
     vector<vector<double>> peaks;
 
@@ -377,6 +394,8 @@ int main(){
     double c[n+1];
     double d[n+1];    
 
+
+
     getCoefficients(n, x, a, b, c, d);
 
     for(int j = 0; j < n; j++){
@@ -408,7 +427,7 @@ int main(){
         
     }
 
-    get_peaks(x, a, b, c, d, tol, peaks);
+    get_peaks(x, a, b, c, d, tol, peaks, shift);
 
     //boxcar_filter(5, x, a);
  
@@ -416,8 +435,10 @@ int main(){
 
     for(int i = 0; i < peaks.size(); i++){
         for(int j = 0; j < peaks.at(i).size(); j++)
-            cout << peaks.at(i).at(j) << "\t" << endl;
+            cout << peaks.at(i).at(j) << "\t";;
 
         cout << endl;
     }
+
+    cout << "tms shift " << shift << endl;
 }
