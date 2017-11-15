@@ -22,18 +22,18 @@ double f_x(double currX, double x[1329], double a[1329], double b[1329], double 
     return total_y;
 }
 
-/*double composite_trapezoid(double a, double b, int n){
+double composite_trapezoid(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double h = (b-a)/n;
 
-    double XI0 = f_x(a) + f_x(b);
+    double XI0 = f_x(a, x, aC, bC, cC, dC) + f_x(b, x, aC, bC, cC, dC);
     double XI1 = 0;
     double XI2 = 0;
 
     for(int i = 1; i < n; i++){
         double X = a + i*h;
         cout << "X: " << X << endl;
-        cout << "f(X): " << f_x(X) << endl;
-        XI2 = XI2 + f_x(X);
+        cout << "f(X): " << f_x(X, x, aC, bC, cC, dC) << endl;
+        XI2 = XI2 + f_x(X, x, aC, bC, cC, dC);
     }
 
     XI1 = h*(XI0+2.0*XI2)/2.0;
@@ -42,19 +42,19 @@ double f_x(double currX, double x[1329], double a[1329], double b[1329], double 
 }
 
 
-double composite_simpsons(double a, double b, int n){
+double composite_simpsons(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double h = (b-a)/n;
 
-    double XI0 = f_x(a) + f_x(b);
+    double XI0 = f_x(a, x, aC, bC, cC, dC) + f_x(b, x, aC, bC, cC, dC);
     double XI1 = 0;
     double XI2 = 0;
 
     for(int i = 1; i < n; i++){
         double X = a + i*h;
         if(i%2 == 0)
-            XI2 = XI2 + f(X);
+            XI2 = XI2 + f_x(X, x, aC, bC, cC, dC);
         else
-            XI1 = XI1 + f(X);
+            XI1 = XI1 + f_x(X, x, aC, bC, cC, dC);
     }
 
     XI1 = h*(XI0+2.0*XI2+4.0*XI1)/3.0;
@@ -62,20 +62,23 @@ double composite_simpsons(double a, double b, int n){
     return XI1;
 }
 
-double romberg(double a, double b, int n){
+double romberg(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
 
     double R[3][n+1];
     double h = b-a;
 
-    R[1][1]=(h/2)*(f(a) + f(b));
+    R[1][1]=(h/2)*(f_x(a, x, aC, bC, cC, dC) + f_x(b,x, aC, bC, cC, dC));
     cout << R[1][1] << endl;
 
-    for(int i = 2; i <= n; i++){
+    double prev = R[1][1];
+    double diff = abs(0.0 - R[1][1]);
+
+    for(int i = 2; i <= n && diff > tol; i++){
 
         double approx = 0;
 
         for(int k = 1; k <= pow(2.0, i-2.0); k++){
-            approx = approx + f_x(a + (k-0.5)*h);
+            approx = approx + f_x(a + (k-0.5)*h, x, aC, bC, cC, dC);
         }
 
         R[2][1] = 0.5 * ( R[1][1] + h*approx);
@@ -90,15 +93,20 @@ double romberg(double a, double b, int n){
 
         h = h/2.0;
 
+        diff = abs(R[2][i]-prev);
+        prev = R[2][i];
+
         for (int j = 1; j <= i; j++)
             R[1][j] = R[2][j];
+        cout << diff << endl;
+
     }
 
     return R[2][n];
 
 }
 
-double adaptiveQuadrature(double a, double b, double TOL, int N){
+double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double APP = 0.0;
     int i = 1;
     double TOL_arr[N];
@@ -114,16 +122,16 @@ double adaptiveQuadrature(double a, double b, double TOL, int N){
     TOL_arr[i] = 10.0*TOL;
     a_arr[i] = a;
     h_arr[i] = (b-a)/2.0;
-    FA_arr[i] = f_x(a);
-    FC_arr[i] = f_x(a+h_arr[i]);
-    FB_arr[i] = f_x(b);
+    FA_arr[i] = f_x(a, x, aC, bC, cC, dC);
+    FC_arr[i] = f_x(a+h_arr[i], x, aC, bC, cC, dC);
+    FB_arr[i] = f_x(b, x, aC, bC, cC, dC);
     S_arr[i] = h_arr[i]*(FA_arr[i] + 4*FC_arr[i] + FB_arr[i])/3.0;
     L_arr[i] = 1.0;
 
     while(i>0){
 
-        double FD = f(a_arr[i] + h_arr[i]/2.0);
-        double FE = f(a_arr[i] + 3*h_arr[i]/2.0);
+        double FD = f_x(a_arr[i] + h_arr[i]/2.0, x, aC, bC, cC, dC);
+        double FE = f_x(a_arr[i] + 3*h_arr[i]/2.0, x, aC, bC, cC, dC);
         double S1 = h_arr[i]*(FA_arr[i]+ 4*FD + FC_arr[i])/6.0;
 
         double S2 = h_arr[i]*(FC_arr[i] + 4*FE+FB_arr[i])/6.0;
@@ -174,7 +182,7 @@ double adaptiveQuadrature(double a, double b, double TOL, int N){
 
     return APP;
 }
-*/
+
 
 double bisection(double a, double b, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
 
@@ -218,7 +226,37 @@ double bisection(double a, double b, double x[1329], double aC[1329], double bC[
      return NULL;
 }
 
-void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double shift){
+
+void set_tms_shift(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, double &shift){
+    double y_prev = a[0];
+    bool tms_set = false;
+    double pntA = 0.0;
+
+    for(int i = 1; i < 1329 & !tms_set; i++){
+        if(y_prev < 0 and a[i] > 0){
+            cout << "start between " << x[i-1] << " and " << x[i] << endl;
+            pntA = bisection(x[i-1], x[i], x, a, b, c, d, tol);
+            cout << "point A: " << pntA << endl;
+        }
+        if(y_prev > 0 and a[i] < 0){
+            cout << "end between " << x[i-1] << " and " << x[i] << endl;
+            double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
+            shift = (pntB+pntA)/2.0;
+            cout << "shift: " << shift << endl;
+            for(int j = 0; j < 1329; j++){
+                x[j] -= shift;
+            }
+            tms_set = true;
+            cout << "point B: " << pntB << endl;
+            
+        //y_prev = a[i];
+        }
+        y_prev = a[i];           
+    }
+}
+
+
+void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double &shift){
 
     bool tms_set = false;
 
@@ -239,6 +277,7 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
 
             if(! tms_set){
                 shift = (pntB+peaks.back().front())/2.0;
+                cout << "shift: " << shift << endl;
                 for(int j = 0; j < 1329; j++){
                     x[j] -= shift;
                 }
@@ -249,7 +288,14 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
 
             peaks.back().push_back(pntB);
             cout << "point B: " << pntB << endl;
+            // add midpoint of peak
             peaks.back().push_back((pntB+peaks.back().front())/2.0);
+            // add top of midpoint
+            peaks.back().push_back(f_x(peaks.back().back(), x, a, b, c, d));
+            // get peak area
+            double area = romberg(peaks.back().front(), pntB, 5, x, a, b, c, d, tol);
+
+            peaks.back().push_back(abs(area));
 
         }
         y_prev = a[i];
@@ -358,7 +404,7 @@ int main(){
 
     int r = 0;
 
-    double shift;
+    double shift = 0.0;
 
     vector<vector<double>> peaks;
 
@@ -395,18 +441,24 @@ int main(){
     double d[n+1];    
 
 
-
+    // get original cubic spline
     getCoefficients(n, x, a, b, c, d);
 
     for(int j = 0; j < n; j++){
         //cout << j << ": " << a[j] << "\t" << b[j] << "\t" << c[j] << "\t" << d[j] << endl;
     }
 
+    set_tms_shift(x, a, b, c, d, tol, shift);
+
+
+
+
+
     double currX = x[n];// x[0];
     int partIndex;    
 
     
-    sg_filter(17, 5, x, a);
+    //sg_filter(17, 5, x, a);
 
     // generate points
     for(int i = 1; i <= 10000; i++){
@@ -420,25 +472,25 @@ int main(){
 
         double total_y = a[partIndex] + b[partIndex]*(currX-x[partIndex]) + c[partIndex]*pow((currX-x[partIndex]),2.0) + d[partIndex]*pow((currX-x[partIndex]), 3.0);
 
-        cout << currX << "\t" << total_y << endl;
+        //cout << currX << "\t" << total_y << endl;
                 
 
         currX = currX - (x[n]-x[0])/10000.0;
         
     }
 
-    get_peaks(x, a, b, c, d, tol, peaks, shift);
+    //get_peaks(x, a, b, c, d, tol, peaks, shift);
 
     //boxcar_filter(5, x, a);
  
     //sg_filter(17, 5, x, a);   
-
+/*
     for(int i = 0; i < peaks.size(); i++){
         for(int j = 0; j < peaks.at(i).size(); j++)
             cout << peaks.at(i).at(j) << "\t";;
 
         cout << endl;
     }
-
+*/
     cout << "tms shift " << shift << endl;
 }
