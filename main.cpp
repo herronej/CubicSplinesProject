@@ -31,8 +31,8 @@ double composite_trapezoid(double a, double b, int n, double x[1329], double aC[
 
     for(int i = 1; i < n; i++){
         double X = a + i*h;
-        cout << "X: " << X << endl;
-        cout << "f(X): " << f_x(X, x, aC, bC, cC, dC) << endl;
+        //cout << "X: " << X << endl;
+        //cout << "f(X): " << f_x(X, x, aC, bC, cC, dC) << endl;
         XI2 = XI2 + f_x(X, x, aC, bC, cC, dC);
     }
 
@@ -68,7 +68,7 @@ double romberg(double a, double b, int n, double x[1329], double aC[1329], doubl
     double h = b-a;
 
     R[1][1]=(h/2)*(f_x(a, x, aC, bC, cC, dC) + f_x(b,x, aC, bC, cC, dC));
-    cout << R[1][1] << endl;
+    //cout << R[1][1] << endl;
 
     double prev = R[1][1];
     double diff = abs(0.0 - R[1][1]);
@@ -83,13 +83,13 @@ double romberg(double a, double b, int n, double x[1329], double aC[1329], doubl
 
         R[2][1] = 0.5 * ( R[1][1] + h*approx);
 
-        cout << R[2][1] << " ";
+        //cout << R[2][1] << " ";
 
         for(int j = 2; j <= i; j++){
             R[2][j] = R[2][j-1] + (R[2][j-1] - R[1][j-1])/(pow(4.0, j-1)-1.0);
-            cout << R[2][j] << " ";
+            //cout << R[2][j] << " ";
         }
-        cout << endl;
+        //cout << endl;
 
         h = h/2.0;
 
@@ -98,7 +98,7 @@ double romberg(double a, double b, int n, double x[1329], double aC[1329], doubl
 
         for (int j = 1; j <= i; j++)
             R[1][j] = R[2][j];
-        cout << diff << endl;
+        //cout << diff << endl;
 
     }
 
@@ -149,7 +149,7 @@ double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329],
         if(abs(S1 + S2 - v7) < v6){
 
             APP = APP + (S1 + S2);
-
+            cout << "app: " << APP << endl;
         }
         else{
             if(v8 >= N){
@@ -186,20 +186,20 @@ double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329],
 
 double bisection(double a, double b, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
 
-    cout << "Bisection Algorithm" << endl;
+    //cout << "Bisection Algorithm" << endl;
 
     int n = 1;
 
     double fa = f_x(a, x, aC, bC, cC, dC);
 
-    cout << "Iteration\t" << "Value of x\t" << "Value of f(x)\t" << "Absolute Error\t" << "Relative Error" <<  endl;
+    //cout << "Iteration\t" << "Value of x\t" << "Value of f(x)\t" << "Absolute Error\t" << "Relative Error" <<  endl;
 
     while( n <= 100 ){
         double p = a + (b-a)/2.0;
 
-        cout << n << "\t";
+        //cout << n << "\t";
 
-        printf("%15f\t", p);
+        //printf("%15f\t", p);
 
         double fp = f_x(p, x, aC, bC, cC, dC);
 
@@ -227,36 +227,65 @@ double bisection(double a, double b, double x[1329], double aC[1329], double bC[
 }
 
 
-void set_tms_shift(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, double &shift){
+void set_tms_shift(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, double &shift, double baseline){
+
+    //subtract baseline
+    for(int i = 0; i < 1329; i++){
+        a[i] -= baseline;
+    }
+
     double y_prev = a[0];
     bool tms_set = false;
     double pntA = 0.0;
 
+    int maxIndex;
+
     for(int i = 1; i < 1329 & !tms_set; i++){
         if(y_prev < 0 and a[i] > 0){
-            cout << "start between " << x[i-1] << " and " << x[i] << endl;
+            //cout << "start between " << x[i-1] << " and " << x[i] << endl;
             pntA = bisection(x[i-1], x[i], x, a, b, c, d, tol);
-            cout << "point A: " << pntA << endl;
+
+            maxIndex = i;
+            //cout << "point A: " << pntA << endl;
         }
+
+
         if(y_prev > 0 and a[i] < 0){
-            cout << "end between " << x[i-1] << " and " << x[i] << endl;
+            //cout << "end between " << x[i-1] << " and " << x[i] << endl;
             double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
-            shift = (pntB+pntA)/2.0;
-            cout << "shift: " << shift << endl;
+            shift = x[maxIndex-1]; //(pntB+pntA)/2.0;
+            //cout << "shift: " << shift << endl;
+
+
+
             for(int j = 0; j < 1329; j++){
                 x[j] -= shift;
             }
             tms_set = true;
-            cout << "point B: " << pntB << endl;
+            //cout << "point B: " << pntB << endl;
             
         //y_prev = a[i];
         }
+        if(a[i] > y_prev)
+            maxIndex = i;
+
         y_prev = a[i];           
     }
+
+    //restore baseline
+    for(int i = 0; i < 1329; i++){
+        a[i] += baseline;
+    }
+
 }
 
 
-void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double &shift){
+void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double baseline){
+
+    // subtract baseline
+    for(int i = 0; i < 1329; i++){
+        a[i] -= baseline;
+    }
 
     bool tms_set = false;
 
@@ -264,18 +293,18 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
 
     for(int i = 1; i < 1329; i++){
         if(y_prev < 0 and a[i] > 0){
-            cout << "start between " << x[i-1] << " and " << x[i] << endl;
+            //cout << "start between " << x[i-1] << " and " << x[i] << endl;
             double pntA = bisection(x[i-1], x[i], x, a, b, c, d, tol);
             vector<double> temp;
             temp.push_back(pntA);
             peaks.push_back(temp);
-            cout << "point A: " << pntA << endl;
+            //cout << "point A: " << pntA << endl;
         }
         if(y_prev > 0 and a[i] < 0){
-            cout << "end between " << x[i-1] << " and " << x[i] << endl;
+            //cout << "end between " << x[i-1] << " and " << x[i] << endl;
             double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
 
-            if(! tms_set){
+            /*if(! tms_set){
                 shift = (pntB+peaks.back().front())/2.0;
                 cout << "shift: " << shift << endl;
                 for(int j = 0; j < 1329; j++){
@@ -284,16 +313,16 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
                 pntB -= shift;
                 peaks.back().front() -= shift;
                 tms_set = true;
-            }
+            }*/
 
             peaks.back().push_back(pntB);
-            cout << "point B: " << pntB << endl;
+            //cout << "point B: " << pntB << endl;
             // add midpoint of peak
             peaks.back().push_back((pntB+peaks.back().front())/2.0);
             // add top of midpoint
-            peaks.back().push_back(f_x(peaks.back().back(), x, a, b, c, d));
+            peaks.back().push_back(f_x(peaks.back().back(), x, a, b, c, d) + baseline);
             // get peak area
-            double area = romberg(peaks.back().front(), pntB, 5, x, a, b, c, d, tol);
+            double area = adaptiveQuadrature(pntB, peaks.back().front(), tol, 100, x, a, b, c, d);// double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]); //romberg(peaks.back().front(), pntB, 5, x, a, b, c, d, tol);
 
             peaks.back().push_back(abs(area));
 
@@ -301,6 +330,10 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
         y_prev = a[i];
     }
 
+    // restore baseline
+    for(int i = 0; i < 1329; i++){
+        a[i] += baseline;
+    }
 }
 
 
@@ -352,7 +385,6 @@ void boxcar_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329
 
     }
     
-
 }
 
 void getCoefficients(int n, double x[1329], double a[1329], double b[1329], double c[1329], double d[1329]){
@@ -426,9 +458,9 @@ int main(){
     }
 
     // subtract baseline
-    for(int i = 0; i < 1329; i++)
-        a[i] -= baseline;
-
+    //for(int i = 0; i < 1329; i++)
+        //a[i] -= baseline;
+    
 
     double h[n+1];
     double alpha[n+1];
@@ -442,15 +474,25 @@ int main(){
 
 
     // get original cubic spline
-    getCoefficients(n, x, a, b, c, d);
+    //getCoefficients(n, x, a, b, c, d);
 
     for(int j = 0; j < n; j++){
         //cout << j << ": " << a[j] << "\t" << b[j] << "\t" << c[j] << "\t" << d[j] << endl;
     }
 
-    set_tms_shift(x, a, b, c, d, tol, shift);
+    // shift points relative to tms peak
+    set_tms_shift(x, a, b, c, d, tol, shift, baseline);
 
 
+    // filter shifted points
+    //sg_filter(17, 5, x, a);
+    boxcar_filter(5, 5, x, a);
+
+    // recalibrate cubic spline
+    getCoefficients(n, x, a, b, c, d);
+    
+    // get cubic spline peaks
+    get_peaks(x, a, b, c, d, tol, peaks, baseline);
 
 
 
@@ -484,13 +526,13 @@ int main(){
     //boxcar_filter(5, x, a);
  
     //sg_filter(17, 5, x, a);   
-/*
+
     for(int i = 0; i < peaks.size(); i++){
         for(int j = 0; j < peaks.at(i).size(); j++)
             cout << peaks.at(i).at(j) << "\t";;
 
         cout << endl;
     }
-*/
+
     cout << "tms shift " << shift << endl;
 }
