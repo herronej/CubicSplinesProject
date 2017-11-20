@@ -1,8 +1,8 @@
-testdata.dat # nmr input file
-10.0 # baseline adjustment
-1e-8 # tolerance for numerical algorithms
-1 # type of filter (0=none, 1=boxcar, 2=SG)
-9 # size of boxcar or SG filter (odd)
-10 # number of passes for filter (when filter != 0)
-0 # integration technique (0=Newton-Cotes, 1=Romberg, 2=Adaptive, 3=Quadrature)
-analysis.dat # output file name
+testdata.dat
+1400.0
+1e-11
+2
+11
+5
+2
+analysis.dat

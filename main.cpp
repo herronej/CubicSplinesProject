@@ -4,25 +4,170 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <iomanip>
+#include <time.h>
 using namespace std;
 
-double f_x(double currX, double x[1329], double a[1329], double b[1329], double c[1329], double d[1329]){
+double maximum(double a, double b, double c){
+
+    if(a>b)
+        if(a>c)
+            return a;
+    else if(b>c)
+        if(b>c)
+            return b;
+    else if(c>b)
+        if(c>a)
+            return c;
+
+}
+
+void print_output(string output_file, double baseline, double tol, int filter, int filter_size, int filter_passes, int integration, string infile, double shift, vector<vector<double>>peaks, double time){
+    ofstream out_file(output_file);
+    if(out_file.is_open()){
+        out_file << "\t\t\t-=> NMR ANALYSIS <=-\n" << endl;
+        out_file << "Program Options" << endl;
+        out_file << "=============================" << endl;
+        out_file << "Baseline Adjustment\t:\t" << baseline << endl;
+        out_file << "Tolerance\t:\t" << tol << endl;
+        
+        if(filter == 0)
+            out_file << "No filtering" << endl;
+        else if(filter == 2){
+            out_file << "Savitzky-Golay Filtering" << endl;
+            out_file << "SG Filter Size (Cyclic)\t:\t" << filter_size << endl;
+            out_file << "SG Filter Passes\t\t:\t" << filter_passes << endl;
+        }
+        else if(filter == 1){
+            out_file << "Boxcar Filtering" << endl;
+            out_file << "Boxcar Size (Cyclic)\t:\t" << filter_size << endl;
+            out_file << "Boxcar Passes\t\t:\t" << filter_passes << endl;
+        }
+        out_file << endl;
+
+        out_file << "Integration Method" << endl;
+        out_file << "===========================" << endl;
+        if(integration == 0)
+            out_file << "Simpson's Rule" << endl;
+        else if(integration == 1)
+            out_file << "Trapezoid Rule" << endl; 
+        else if(integration == 2)
+            out_file << "Romberg Integration" << endl;
+        else if(integration == 3)
+            out_file << "Adaptive Quadrature" << endl;
+        out_file << endl;        
+
+        out_file << "Plot File Data" << endl;       
+        out_file << "===========================" << endl;
+        out_file << "File: " << infile << endl;
+        out_file << "Plot shifted\t" << shift << " for the TMS calibration" << endl << endl << endl;
+
+        out_file << "Peak   " << setw(10)<< "Begin" << setw(10) << "End" << setw(10) << "Location" << setw(10) << "Top" << setw(10) <<"Area" << setw(10) << "Hydrogens" << endl;
+        out_file << setw(7) << "=======" << setw(10) << "========" << setw(10) << "========" << setw(10) << "========" << setw(10) << "========" << setw(10) << "========" << setw(10) << "========" << endl;  
+
+        int size_peaks = peaks.size();
+        //cout << size_peaks << endl;
+
+        int peak_count = 1;
+        for(int i = peaks.size()-1; i >=0; i--){
+            out_file  << setw(7) << peak_count;
+            out_file << std::setw(10) << peaks.at(i).at(1);
+            out_file << std::setw(10) << peaks.at(i).at(0);
+            for(int j = 2; j < peaks.at(i).size(); j++)
+                out_file << std::setw(10) << peaks.at(i).at(j);
+            out_file << endl;
+            peak_count++;
+        }
+        
+        out_file << "Anaylsis took " << time << " seconds" << endl;   
+
+        out_file.close();
+    }
+}
+
+void read_options(string &input_file, double &baseline, double &tol, int &filter, int &filter_size, int &filter_passes, int &integration, string &output_file, int &n_points){
+    string line;
+    ifstream options_file("nmr.in");
+    if(options_file.is_open()){
+        //while(getline(options_file, line)){
+        //    cout << line << endl;
+        //}
+        getline(options_file, input_file);
+        
+        getline(options_file, line);
+        baseline = atof(line.c_str());
+
+        getline(options_file, line);
+        tol = atof(line.c_str());
+
+        getline(options_file, line);
+        filter = atoi(line.c_str());
+
+        getline(options_file, line);
+        filter_size = atoi(line.c_str());
+
+        getline(options_file, line);
+        filter_passes = atoi(line.c_str());
+
+        getline(options_file, line);
+        integration = atoi(line.c_str());
+        
+        getline(options_file, output_file);
+   
+        options_file.close();
+
+        // count lines in input_file
+        ifstream infile(input_file);
+        int n_points = 0;       
+        if(infile.is_open()){
+            while(getline(infile, line)){
+                n_points++;
+            }
+            infile.close();
+        }
+        else{
+            cout << "input file not found" << endl;
+        }
+    }
+    else{
+        cout << "nmr.in not opened" << endl;
+    }
+    
+}
+
+
+double f_x(double currX, vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d){
 
     int partIndex = 0;
 
-    for(int j = 0; j < 1329-1; j++){
-        if(currX <= x[j] && currX >= x[j+1]){
+    for(int j = 0; j < x.size() - 1; j++){
+        if(currX <= x.at(j) && currX >= x.at(j+1)){
             partIndex = j;
             break;
         }
     }
 
-    double total_y = a[partIndex] + b[partIndex]*(currX-x[partIndex]) + c[partIndex]*pow((currX-x[partIndex]),2.0) + d[partIndex]*pow((currX-x[partIndex]), 3.0);
-
+    double total_y = a.at(partIndex) + b.at(partIndex)*(currX-x.at(partIndex)) + c.at(partIndex)*pow(currX-x.at(partIndex), 2.0) + d.at(partIndex)*pow(currX-x.at(partIndex), 3.0);
     return total_y;
 }
 
-double composite_trapezoid(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
+double df_x(double currX, vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d){
+
+    int partIndex = 0;
+
+    for(int j = 0; j < x.size() - 1; j++){
+        if(currX <= x.at(j) && currX >= x.at(j+1)){
+            partIndex = j;
+            break;
+        }
+    }
+
+    double total_y =  b.at(partIndex) + 2.0*c.at(partIndex)*pow(currX-x.at(partIndex), 1.0) + 3.0*d.at(partIndex)*pow(currX-x.at(partIndex), 2.0);
+    return total_y;
+}
+
+
+double composite_trapezoid(double a, double b, int n, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC){//double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double h = (b-a)/n;
 
     double XI0 = f_x(a, x, aC, bC, cC, dC) + f_x(b, x, aC, bC, cC, dC);
@@ -42,7 +187,7 @@ double composite_trapezoid(double a, double b, int n, double x[1329], double aC[
 }
 
 
-double composite_simpsons(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
+double composite_simpsons(double a, double b, int n, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC){//double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double h = (b-a)/n;
 
     double XI0 = f_x(a, x, aC, bC, cC, dC) + f_x(b, x, aC, bC, cC, dC);
@@ -55,6 +200,8 @@ double composite_simpsons(double a, double b, int n, double x[1329], double aC[1
             XI2 = XI2 + f_x(X, x, aC, bC, cC, dC);
         else
             XI1 = XI1 + f_x(X, x, aC, bC, cC, dC);
+
+        cout << XI1 << endl;
     }
 
     XI1 = h*(XI0+2.0*XI2+4.0*XI1)/3.0;
@@ -62,7 +209,7 @@ double composite_simpsons(double a, double b, int n, double x[1329], double aC[1
     return XI1;
 }
 
-double romberg(double a, double b, int n, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
+double romberg(double a, double b, int n, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC, double tol){//double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
 
     double R[3][n+1];
     double h = b-a;
@@ -87,7 +234,7 @@ double romberg(double a, double b, int n, double x[1329], double aC[1329], doubl
 
         for(int j = 2; j <= i; j++){
             R[2][j] = R[2][j-1] + (R[2][j-1] - R[1][j-1])/(pow(4.0, j-1)-1.0);
-            //cout << R[2][j] << " ";
+            cout << R[2][j] << " ";
         }
         //cout << endl;
 
@@ -106,7 +253,7 @@ double romberg(double a, double b, int n, double x[1329], double aC[1329], doubl
 
 }
 
-double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
+double adaptiveQuadrature(double a, double b, double TOL, int N, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC){//double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]){
     double APP = 0.0;
     int i = 1;
     double TOL_arr[N];
@@ -149,7 +296,7 @@ double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329],
         if(abs(S1 + S2 - v7) < v6){
 
             APP = APP + (S1 + S2);
-            cout << "app: " << APP << endl;
+            //cout << "app: " << APP << endl;
         }
         else{
             if(v8 >= N){
@@ -184,28 +331,46 @@ double adaptiveQuadrature(double a, double b, double TOL, int N, double x[1329],
 }
 
 
-double bisection(double a, double b, double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329], double tol){
-
-    //cout << "Bisection Algorithm" << endl;
+double bisection(double a, double b, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC, double tol){
 
     int n = 1;
 
     double fa = f_x(a, x, aC, bC, cC, dC);
 
-    //cout << "Iteration\t" << "Value of x\t" << "Value of f(x)\t" << "Absolute Error\t" << "Relative Error" <<  endl;
+    while( n <= 100 ){
+        double p = a + (b-a)/2.0;
+
+        double fp = f_x(p, x, aC, bC, cC, dC);
+
+        if(fp == 0 || (b-a)/2.0 < tol){
+            return p;
+        }
+
+        if (fa*fp > 0){
+            a = p;
+            fa = fp;
+        }
+
+        else{
+            b = p;
+        }
+
+        n += 1;
+     }
+
+     return NULL;
+}
+
+double dfxbisection(double a, double b, vector<double> &x, vector<double> &aC, vector<double> &bC, vector<double> &cC, vector<double> &dC, double tol){
+
+    int n = 1;
+
+    double fa = df_x(a, x, aC, bC, cC, dC);
 
     while( n <= 100 ){
         double p = a + (b-a)/2.0;
 
-        //cout << n << "\t";
-
-        //printf("%15f\t", p);
-
-        double fp = f_x(p, x, aC, bC, cC, dC);
-
-        //double abs_err = abs(truth - p);
-
-        //printf("%15f\t%15f\t%15f\n", fp, abs_err, abs_err/abs(truth));
+        double fp = df_x(p, x, aC, bC, cC, dC);
 
         if(fp == 0 || (b-a)/2.0 < tol){
             return p;
@@ -227,72 +392,80 @@ double bisection(double a, double b, double x[1329], double aC[1329], double bC[
 }
 
 
-void set_tms_shift(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, double &shift, double baseline){
+void set_tms_shift(vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d, double tol, double &shift, double baseline){//double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, double &shift, double baseline){
 
     //subtract baseline
-    for(int i = 0; i < 1329; i++){
-        a[i] -= baseline;
+    for(int i = 0; i < x.size(); i++){//1329; i++){
+        a.at(i) -= baseline; //a[i] -= baseline;
     }
 
-    double y_prev = a[0];
+    double y_prev = a.at(0);//a[0];
     bool tms_set = false;
     double pntA = 0.0;
 
     int maxIndex;
 
-    for(int i = 1; i < 1329 & !tms_set; i++){
-        if(y_prev < 0 and a[i] > 0){
+    for(int i = 1; i < x.size() && !tms_set; i++){//1329 & !tms_set; i++){
+        if(y_prev < 0 and a.at(i) > 0){//a[i] > 0){
             //cout << "start between " << x[i-1] << " and " << x[i] << endl;
-            pntA = bisection(x[i-1], x[i], x, a, b, c, d, tol);
+            pntA = bisection(x.at(i-1), x.at(i), x, a, b, c, d, tol);//x[i-1], x[i], x, a, b, c, d, tol);
 
             maxIndex = i;
             //cout << "point A: " << pntA << endl;
         }
 
 
-        if(y_prev > 0 and a[i] < 0){
+        if(y_prev > 0 and a.at(i) < 0){//a[i] < 0){
             //cout << "end between " << x[i-1] << " and " << x[i] << endl;
-            double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
-            shift = x[maxIndex-1]; //(pntB+pntA)/2.0;
+            double pntB = bisection(x.at(i-1), x.at(i), x, a, b, c, d, tol);//x[i-1], x[i], x, a, b, c, d, tol);
+            shift = x.at(maxIndex-1);//x[maxIndex-1]; //(pntB+pntA)/2.0;
             //cout << "shift: " << shift << endl;
 
 
 
-            for(int j = 0; j < 1329; j++){
-                x[j] -= shift;
+            for(int j = 0; j < a.size(); j++){//1329; j++){
+                //x[j] -= shift;
+                x.at(j) -= shift;
             }
             tms_set = true;
             //cout << "point B: " << pntB << endl;
             
         //y_prev = a[i];
         }
-        if(a[i] > y_prev)
+        if(a.at(i) > y_prev)//a[i] > y_prev)
             maxIndex = i;
 
-        y_prev = a[i];           
+        y_prev = a.at(i);//a[i];           
     }
 
     //restore baseline
-    for(int i = 0; i < 1329; i++){
-        a[i] += baseline;
+    for(int i = 0; i < x.size(); i++){//1329; i++){
+        a.at(i) += baseline;//a[i] += baseline;
     }
 
 }
 
 
-void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double baseline){
+void get_peaks(vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d, double tol, vector<vector<double>> &peaks, double baseline, double integration){//double x[1329], double a[1329], double b[1329], double c[1329], double d[1329], double tol, vector<vector<double>> &peaks, double baseline, double integration){
 
     // subtract baseline
-    for(int i = 0; i < 1329; i++){
-        a[i] -= baseline;
+    for(int i = 0; i < a.size(); i++){//1329; i++){
+        a.at(i) -= baseline;//a[i] -= baseline;
+        //cout << a.at(i) << endl;
     }
 
     bool tms_set = false;
 
-    double y_prev = a[0];
+    double y_prev = a.at(0);//a[0];
 
-    for(int i = 1; i < 1329; i++){
-        if(y_prev < 0 and a[i] > 0){
+    double max_a = 0.0;
+
+    for(int i = 1; i < a.size(); i++){//1329; i++){
+        if(a.at(i) > max_a){
+            max_a = a.at(i);
+        }
+
+        if(y_prev < 0 and a.at(i) > 0){//a[i] > 0){
             //cout << "start between " << x[i-1] << " and " << x[i] << endl;
             double pntA = bisection(x[i-1], x[i], x, a, b, c, d, tol);
             vector<double> temp;
@@ -300,9 +473,9 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
             peaks.push_back(temp);
             //cout << "point A: " << pntA << endl;
         }
-        if(y_prev > 0 and a[i] < 0){
+        if(y_prev > 0 and a.at(i) < 0){//a[i] < 0){
             //cout << "end between " << x[i-1] << " and " << x[i] << endl;
-            double pntB = bisection(x[i-1], x[i], x, a, b, c, d, tol);
+            double pntB = bisection(x.at(i-1), x.at(i), x, a, b, c, d, tol);//x[i-1], x[i], x, a, b, c, d, tol);
 
             /*if(! tms_set){
                 shift = (pntB+peaks.back().front())/2.0;
@@ -320,107 +493,182 @@ void get_peaks(double x[1329], double a[1329], double b[1329], double c[1329], d
             // add midpoint of peak
             peaks.back().push_back((pntB+peaks.back().front())/2.0);
             // add top of midpoint
-            peaks.back().push_back(f_x(peaks.back().back(), x, a, b, c, d) + baseline);
+            //double extremaX = dfxbisection(pntB, peaks.back().front(), x, a, b, c, d, tol);
+            //double extremaA = f_x(extremaX, x, a, b, c, d);
+
+            //cout << extremaX << "\t" << a.at(i-1) << "\t" << extremaA << "\t" << a.at(i) << endl;
+
+            peaks.back().push_back(max_a);//imum(a.at(i-1), extremaA, a.at(i)));//max_a);
+            //peaks.back().push_back(f_x(peaks.back().back(), x, a, b, c, d) + baseline);
+            // get maximum
+            //get_top(peaks.back.front(), pntB, );
             // get peak area
-            double area = adaptiveQuadrature(pntB, peaks.back().front(), tol, 100, x, a, b, c, d);// double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]); //romberg(peaks.back().front(), pntB, 5, x, a, b, c, d, tol);
+            double area;
+            if(integration == 0)
+                area = composite_simpsons(pntB, peaks.back().front(), 100, x, a, b, c, d);
+            else if(integration == 1)
+                area = composite_trapezoid(pntB, peaks.back().front(), 100, x, a, b, c, d);   
+            else if(integration == 2)
+                area = romberg(pntB, peaks.back().front(), 10, x, a, b, c, d, tol);
+            else if(integration == 3)
+                area = adaptiveQuadrature(pntB, peaks.back().front(), tol, 100, x, a, b, c, d);// double x[1329], double aC[1329], double bC[1329], double cC[1329], double dC[1329]); //romberg(peaks.back().front(), pntB, 5, x, a, b, c, d, tol);
 
             peaks.back().push_back(abs(area));
-
+            max_a = 0.0;
         }
-        y_prev = a[i];
+        y_prev = a.at(i);//a[i];
     }
 
+    // get hydrogen estimates
+    
+    double min_area = peaks.at(0).back();
+    for (int i = 1; i < peaks.size(); i++){
+        if(peaks.at(i).back() < min_area){
+            min_area = peaks.at(i).back();
+        }
+    }
+
+    for (int i = 0; i < peaks.size(); i++){
+        peaks.at(i).push_back(floor(peaks.at(i).back()/min_area));
+    }
+
+
     // restore baseline
-    for(int i = 0; i < 1329; i++){
-        a[i] += baseline;
+    for(int i = 0; i < a.size(); i++){//1329; i++){
+        //a[i] += baseline;
+        a.at(i) += baseline;
     }
 }
 
 
-void sg_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329]){
+void sg_filter(int nFilterPoints, int nPasses, vector<double> &x, vector<double> &a){//double x[1329], double a[1329]){
 
     double c5[5] = {-3, 12, 17, 12, -3};
     double c11[11] = {-36, 9, 44, 69, 84, 89, 84, 69, 44, 9, -36};
     double c17[17] = {-21, -6, 7, 18, 27, 34, 39, 42, 43, 42, 39, 34, 27, 18, 7, -6, -21};
 
-    for(int p = 1; p <= nPasses; p++)
-        for(int i = (nFilterPoints-1)/2; i < 1329-(nFilterPoints-1)/2; i++){
+    int m = (nFilterPoints - 1)/2;
+
+
+    //for(int p = 1; p <= nPasses; p++)
+        for(int j = m; j < a.size()-m; j++){//1329-(nFilterPoints-1)/2; i++){
+            //cout << a.at(i) << endl;
             double sumX = 0.0;
             double sumA = 0.0;
-            for(int j = 0; j < nFilterPoints; j++){
-                
+            int count = 0;
+            for(int i = -m; i <= m; i++){
+        
                 if(nFilterPoints == 5){
-                    sumA += c5[j]*a[i+1];
+                    //sumA += c5[j]*a.at(i+1);//a[i+1];
+                    sumA += c5[m+i]*a[i+j];
                 }
             
                 else if(nFilterPoints == 11){
-                    sumA += c11[j]*a[i+1];
+                    //sumA += c11[j]*a.at(i+1);//a[i+1];
+                    sumA += c11[m+i]*a[i+j];//a.at(i+j);
+                    //cout << i+j << endl;
+                    //cout << a.at(i+j) << endl;
                 }
 
                 else if(nFilterPoints == 17){
-                    sumA += c17[j]*a[i+1];
+                    //sumA += c17[j]*a.at(i+1);//a[i+1];
+                    sumA += c17[m+i]*a[i+j];
                 }
                 //sumA += a[j];
+                count++;
+                //cout << count << endl;
             }
             //if (p == nPasses)
                 //cout << x[i] << "\t" << sumA/nFilterPoints << endl;
-                a[i] = sumA/nFilterPoints;    
+            a[j] = sumA/nFilterPoints; //a[i] = sumA/nFilterPoints;    
+            //temp.at(i) = sumA/nFilterPoints;
+            cout << a[j] << endl;
     }
-
 }
 
 
-void boxcar_filter(int nFilterPoints, int nPasses, double x[1329], double a[1329]){
+void boxcar_filter(int nFilterPoints, int nPasses, vector<double>&x, vector<double> &a){//double x[1329], double a[1329]){
     
    for(int m = 0; m < nPasses; m++)
-    for(int i = (nFilterPoints-1)/2; i < 1329-(nFilterPoints-1)/2; i++){
+    for(int i = (nFilterPoints-1)/2; i < a.size()-(nFilterPoints-1)/2; i++){//1329-(nFilterPoints-1)/2; i++){
         double sumX = 0.0;
         double sumA = 0.0;
         for(int j = i - (nFilterPoints-1)/2; j <= i + (nFilterPoints-1)/2; j++){
-            sumA += a[j];
+            sumA += a.at(j);//a[j];
         }
         //if (m == 4)
             //cout << x[i] << "\t" << sumA/nFilterPoints << endl;
-        a[i] = sumA/nFilterPoints;
-
+        //a[i] = sumA/nFilterPoints;
+        a.at(i) = sumA/nFilterPoints;
     }
     
 }
 
-void getCoefficients(int n, double x[1329], double a[1329], double b[1329], double c[1329], double d[1329]){
+void getCoefficients(int n, vector<double>&x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d){//double x[1329], double a[1329], double b[1329], double c[1329], double d[1329]){
 
-    double h[n+1];
+    /*double h[n+1];
     double alpha[n+1];
     double l[n+1];
     double mu[n+1];
-    double z[n+1];
+    double z[n+1];*/
+
+    vector<double> h;
+    vector<double> alpha;
+    vector<double> l;
+    vector<double> mu;
+    vector<double> z;
+
+    for(int i = 0; i < n+1; i++){
+        h.push_back(0.0);
+        alpha.push_back(0.0);
+        l.push_back(0.0);
+        mu.push_back(0.0);
+        z.push_back(0.0);
+    }
     
     for(int i = 0; i < n; i++){
-        h[i] = x[i+1] - x[i];
+       // h[i] = x.at(i+1)-x.at(i);//x[i+1] - x[i];
+        h.at(i) = x.at(i+1)-x.at(i);
     }
 
     for(int i = 1; i < n; i++){
-        alpha[i] = (3.0/h[i])*(a[i+1]-a[i]) - (3.0/h[i-1])*(a[i]-a[i-1]);
+        alpha.at(i) = (3.0/h.at(i))*(a.at(i+1)-a.at(i))-(3.0/h.at(i-1))*(a.at(i)-a.at(i-1));
+        //alpha[i] = (3.0/h[i])*(a.at(i+1)-a.at(i))-(3.0/h[i-1])*(a.at(i)-a.at(i-1));//(a[i+1]-a[i]) - (3.0/h[i-1])*(a[i]-a[i-1]);
     }
 
-    l[0] = 1.0;
-    mu[0] = 0.0;
-    z[0] = 0.0;
+    //l[0] = 1.0;
+    //mu[0] = 0.0;
+    //z[0] = 0.0;
+    l.at(0) = 1.0;
+    mu.at(0) = 0.0;
+    z.at(0) = 0.0;
 
     for(int i = 1; i < n; i++){
-        l[i] = 2.0*(x[i+1] - x[i-1])-h[i-1]*mu[i-1];
-        mu[i] = h[i]/l[i];
-        z[i] = (alpha[i] - h[i-1]*z[i-1])/l[i];
+        //l[i] = 2.0*(x.at(i+1)-x.at(i-1))-h[i-1]*mu[i-1];//(x[i+1] - x[i-1])-h[i-1]*mu[i-1];
+        //mu[i] = h[i]/l[i];
+        //z[i] = (alpha[i] - h[i-1]*z[i-1])/l[i];
+        l.at(i)=2.0*(x.at(i+1)-x.at(i-1))-h.at(i-1)*mu.at(i-1);
+        mu.at(i) = h.at(i)/l.at(i);
+        z.at(i) = (alpha.at(i) - h.at(i-1)*z.at(i-1))/l.at(i);
     }
 
-    l[n] = 1.0;
-    z[n] = 0.0;
-    c[n] = 0.0;
+    //l[n] = 1.0;
+    //z[n] = 0.0;
+    //c[n] = 0.0;
+    l.at(n) = 1.0;
+    z.at(n) = 0.0;
+    c.at(n) = 0.0;
 
     for(int j = n-1; j>= 0; j -= 1){
-        c[j] = z[j] - mu[j]*c[j+1];
+        /*c[j] = z[j] - mu[j]*c[j+1];
         b[j] = (a[j+1]-a[j])/h[j] - h[j]*(c[j+1]+2*c[j])/3.0;
-        d[j] = (c[j+1]-c[j])/(3*h[j]);
+        d[j] = (c[j+1]-c[j])/(3*h[j]);*/
+
+
+        c.at(j) = z.at(j) - mu.at(j)*c.at(j+1);
+        b.at(j) = (a.at(j+1)-a.at(j))/h.at(j) - h.at(j)*(c.at(j+1)+2*c.at(j))/3.0;
+        d.at(j) = (c.at(j+1)-c.at(j))/(3*h.at(j));
+
     }
    
        
@@ -438,11 +686,22 @@ int main(){
 
     double shift = 0.0;
 
+    string input_file, output_file;
+
+    int filter, filter_size, filter_passes, integration;
+
+
+    clock_t start = clock(), diff;
+    
+    read_options(input_file, baseline, tol, filter, filter_size, filter_passes, integration, output_file, n);
+
     vector<vector<double>> peaks;
 
 
-    double x[n+1];
-    double a[n+1];
+    //double x[n+1];
+    //double a[n+1];
+    vector<double> x;
+    vector<double> a;
 
     ifstream source;
     source.open("testdata.dat");
@@ -453,24 +712,40 @@ int main(){
         in >> xpt;
         in >> ypt;
         //cout << xpt << "\t" << ypt << endl;
-        x[r] = xpt;
-        a[r] = ypt;
+        //x[r] = xpt;
+        //a[r] = ypt;
+        x.push_back(xpt);
+        a.push_back(ypt);
     }
 
     // subtract baseline
     //for(int i = 0; i < 1329; i++)
         //a[i] -= baseline;
     
+    vector<double> h;
+    vector<double> alpha;
+    vector<double> l;
+    vector<double> mu;
+    vector<double> z;
+    vector<double> b;
+    vector<double> c;
+    vector<double> d;
 
-    double h[n+1];
-    double alpha[n+1];
+    for(int i = 0; i < n+1; i++){
 
-    double l[n+1];
-    double mu[n+1];
-    double z[n+1];
-    double b[n+1];
-    double c[n+1];
-    double d[n+1];    
+        b.push_back(1.0);
+        c.push_back(1.0);
+        d.push_back(1.0);
+    }
+    //double h[n+1];
+    //double alpha[n+1];
+
+    //double l[n+1];
+    //double mu[n+1];
+    //double z[n+1];
+    //double b[n+1];
+    //double c[n+1];
+    //double d[n+1];    
 
 
     // get original cubic spline
@@ -486,17 +761,28 @@ int main(){
 
     // filter shifted points
     //sg_filter(17, 5, x, a);
-    boxcar_filter(5, 5, x, a);
+    //
+    for(int i = 0; i<a.size();i++)
+        cout << a.at(i) << endl;
 
-    // recalibrate cubic spline
+    if(filter == 1)
+        boxcar_filter(filter_size, filter_passes, x, a);//(5, 5, x, a);
+    else if(filter == 2)
+        sg_filter(filter_size, filter_passes, x, a);
+
+    cout << "get coefs" << endl;
+
+    // get cubic spline
     getCoefficients(n, x, a, b, c, d);
     
+    cout << "get peaks" << endl;
+
     // get cubic spline peaks
-    get_peaks(x, a, b, c, d, tol, peaks, baseline);
+    get_peaks(x, a, b, c, d, tol, peaks, baseline, integration);
 
+    cout << "finished" << endl;
 
-
-    double currX = x[n];// x[0];
+    double currX = x.at(n);//x[n];// x[0];
     int partIndex;    
 
     
@@ -506,18 +792,18 @@ int main(){
     for(int i = 1; i <= 10000; i++){
         
         for(int j = 0; j < n; j++){
-            if(currX <= x[j] && currX >= x[j+1]){
+            if(currX <= x.at(j) && currX >= x.at(j+1)){//x[j] && currX >= x[j+1]){
                 partIndex = j;
                 break;
             }       
         }
 
-        double total_y = a[partIndex] + b[partIndex]*(currX-x[partIndex]) + c[partIndex]*pow((currX-x[partIndex]),2.0) + d[partIndex]*pow((currX-x[partIndex]), 3.0);
+        double total_y = a.at(partIndex) + b.at(partIndex)*(currX-x.at(partIndex)) + c.at(partIndex)*pow(currX-x.at(partIndex), 2.0) + d.at(partIndex)*pow(currX-x.at(partIndex), 3.0);//a[partIndex] + b[partIndex]*(currX-x[partIndex]) + c[partIndex]*pow((currX-x[partIndex]),2.0) + d[partIndex]*pow((currX-x[partIndex]), 3.0);
 
         //cout << currX << "\t" << total_y << endl;
                 
 
-        currX = currX - (x[n]-x[0])/10000.0;
+        currX = currX -(x.at(n)-x.at(0))/10000.0;//- (x[n]-x[0])/10000.0;
         
     }
 
@@ -529,10 +815,16 @@ int main(){
 
     for(int i = 0; i < peaks.size(); i++){
         for(int j = 0; j < peaks.at(i).size(); j++)
-            cout << peaks.at(i).at(j) << "\t";;
+            cout << peaks.at(i).at(j) << "\t";
 
         cout << endl;
     }
+
+
+    diff = clock() - start;
+    int msec = diff * 1000 / CLOCKS_PER_SEC;
+
+    print_output(output_file, baseline, tol, filter, filter_size, filter_passes, integration, input_file, shift, peaks, msec/1000.0);
 
     cout << "tms shift " << shift << endl;
 }
