@@ -42,6 +42,8 @@ void print_output(string output_file, double baseline, double tol, int filter, i
             out_file << "Romberg Integration" << endl;
         else if(integration == 3)
             out_file << "Adaptive Quadrature" << endl;
+        else if(integration == 4)
+            out_file << "Gaussian Quadrature" << endl;
         out_file << endl;        
 
         out_file << "Plot File Data" << endl;       
@@ -422,7 +424,7 @@ void set_tms_shift(vector<double> &x, vector<double> &a, vector<double> &b, vect
 }
 
 // gaussian integration when n = 5 
-double gaussian(vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d){ 
+double gaussian(double pnta, double pntb, vector<double> &x, vector<double> &a, vector<double> &b, vector<double> &c, vector<double> &d){ 
 
     double r[5] = {0.9061798459, 0.5384693101, 0.0000, -0.5384693101, -0.9061798459};
     double coef[5] = {0.2369268885, 0.4786286705, 0.5688888889, 0.4786286705, 0.236926885};
@@ -430,7 +432,7 @@ double gaussian(vector<double> &x, vector<double> &a, vector<double> &b, vector<
 
     double sum = 0.0;
     for(int i = 0; i < 5; i++)
-        sum += coef[i]*f_x(r[i], x, a, b, c, d);
+        sum += coef[i]*f_x(0.5*((pntb-pnta)*r[i]+pnta+pntb), x, a, b, c, d);
 
     return sum;
 }
@@ -482,6 +484,8 @@ void get_peaks(vector<double> &x, vector<double> &a, vector<double> &b, vector<d
                 area = romberg(pntB, peaks.back().front(), 7, x, a, b, c, d, tol);
             else if(integration == 3)
                 area = adaptiveQuadrature(pntB, peaks.back().front(), tol, 30, x, a, b, c, d);
+            else if(integration == 4)
+                area = gaussian(pntB, peaks.back().front(), x, a, b, c, d);
 
             peaks.back().push_back(abs(area));
             max_a = 0.0;
