@@ -6,6 +6,7 @@
 #include <vector>
 #include <iomanip>
 #include <time.h>
+#include <complex>
 using namespace std;
 
 // prints results to output file 
